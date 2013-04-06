@@ -1,0 +1,24 @@
+package edu.upenn.cis455.globaldata;
+
+import java.util.Date;
+import java.util.HashMap;
+
+import edu.upenn.cis455.components.CrawlDelayTable;
+import edu.upenn.cis455.components.FilesDownloadedCounter;
+import edu.upenn.cis455.components.Queue;
+import edu.upenn.cis455.dbservice.ServiceProvider;
+
+public class GlobalData {
+
+	public static HashMap<String,Date> dbCopyOfUrls;
+	public static HashMap<String,String> channelidXpaths;
+	public static ServiceProvider serviceProvider;
+	public static CrawlDelayTable delayTable;
+	public static FilesDownloadedCounter counter;
+	public static int fileCrawlingLimit = 10000;
+	public static int fileSizeLimitInMb = 10;
+	public static boolean shutdown = false;
+	public static final int CRAWLER_THREADCOUNT = 10;
+	public static Queue urlQueue;
+	
+}

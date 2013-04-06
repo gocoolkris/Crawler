@@ -1,0 +1,19 @@
+package edu.upenn.cis455.globaldata;
+
+import edu.upenn.cis455.database.DocumentService;
+
+/**
+ * Loads the list of urls that was previously saved into the Database
+ * @author cis455
+ *
+ */
+public class UrlLoader {
+
+
+	public static void LoadUrlsFromDatabase(DocumentService ds){
+		GlobalData.dbCopyOfUrls = ds.getUrlList();
+	}
+	
+	
+	
+}

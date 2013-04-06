@@ -1,0 +1,62 @@
+package edu.upenn.cis455.components;
+
+import java.util.ArrayList;
+import java.util.Vector;
+
+public class Queue {
+
+	private static Object lockQueue;
+	
+	private static Vector<String> urls;
+
+	public Queue(){
+		lockQueue = new Object();
+		urls = new Vector<String>();
+	}
+	
+	public boolean enqueueUrl(String url){
+		synchronized(lockQueue){
+			if(urls.isEmpty()){
+				urls.add(url);
+				notifyAll();
+				return true;
+			}
+			urls.add(url);
+			return true;
+		}
+	}
+	
+	public boolean enqueueUrlList(ArrayList<String> urlList){
+		synchronized(lockQueue){
+			if(urls.isEmpty()){
+				for(String url : urlList) urls.add(url);
+				notifyAll();
+				return true;
+			}
+			for(String url : urlList) urls.add(url);
+			return true;
+		}
+	}
+	
+	
+	
+	public boolean isEmpty(){
+		synchronized(lockQueue){
+			if(urls.isEmpty()) return true;
+			else return false;
+		}
+	}
+	
+	public String dequeueUrl(){
+		try{
+		synchronized(lockQueue){
+			if(urls.isEmpty()) wait();
+			return urls.remove(0);
+		}
+		}
+		catch(Exception e){
+			return null;
+		}
+	}
+	
+}

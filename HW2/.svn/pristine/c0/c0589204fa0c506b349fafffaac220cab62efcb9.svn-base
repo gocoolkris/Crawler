@@ -1,0 +1,104 @@
+package edu.upenn.cis455.dbservice;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+
+import edu.upenn.cis455.dbobjects.User;
+
+public class UserService {
+
+	public UserService(){}
+
+	private PrimaryIndex<String,User> username;
+	private Environment env;
+
+	public UserService(EntityStore str, Environment e){
+		username = str.getPrimaryIndex(String.class, User.class);
+		env = e;
+	}
+
+	public boolean userNameAlreadyExists(String uname){
+		try{
+			User u = username.get(uname);
+			if(u != null)return true;
+			else return false;
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public boolean validateLogin(String uname, String password){
+		try{
+			User u = username.get(uname);
+			if(u == null) return false;
+			if(u.getUsername().equals(uname) && 
+					u.getPassword().equals(password)) return true;
+		}
+		catch(Exception e){}
+		return false;
+	}
+	
+	
+	
+	public boolean addUser(String uname, String passwd){
+		try{
+			if(!userNameAlreadyExists(uname)){
+				User u = new User(uname,passwd);
+				username.put(u);
+				env.sync();
+				return true;
+			}
+			return false;
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public boolean deleteUser(String uname){
+		try{
+			if(!userNameAlreadyExists(uname)) return false;
+			username.delete(uname);
+			env.sync();
+			return true;
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	public boolean changePassword(String uname, String oldPasswd, String newPasswd){
+		try{
+			if(!userNameAlreadyExists(uname)) return false;
+			else{
+				User usr = username.get(uname);
+				if(usr.getPassword().equals(oldPasswd)){
+					usr.setPassword(newPasswd);
+					username.put(usr);
+					return true;
+				}
+				else return false;
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	public void printUser(String uname){
+		try{
+			User u = username.get(uname);
+			if(u!= null)
+				System.out.println(u.getUsername() + ":" + u.getPassword());
+			else{
+				System.out.println("No entry for username: " + uname );
+			}
+		}catch(Exception e){}
+	}
+	
+}

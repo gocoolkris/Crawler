@@ -1,0 +1,25 @@
+package edu.upenn.cis455.components;
+
+import edu.upenn.cis455.globaldata.GlobalData;
+
+public class FilesDownloadedCounter {
+
+	private static Object counterlock = new Object();
+	private static int filedownloadCount;
+	
+	public static void incrementCounter(){
+		synchronized(counterlock){
+			if(filedownloadCount >= GlobalData.fileCrawlingLimit){
+				GlobalData.shutdown = true;
+			}
+			else filedownloadCount++;
+		}
+	}
+	
+	public static int getDownloadedFilesCount(){
+		synchronized(counterlock){
+			return filedownloadCount;
+		}
+	}
+	
+}

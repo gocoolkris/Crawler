@@ -1,0 +1,87 @@
+package edu.upenn.cis455.crawler;
+
+import edu.upenn.cis455.components.CrawlDelayTable;
+import edu.upenn.cis455.components.FilesDownloadedCounter;
+import edu.upenn.cis455.components.Queue;
+import edu.upenn.cis455.components.ThreadPool;
+import edu.upenn.cis455.dbservice.ServiceProvider;
+import edu.upenn.cis455.globaldata.GlobalData;
+import edu.upenn.cis455.globaldata.DataLoader;
+
+
+public class XPathCrawler {
+	/**
+	 * 
+	 * @param args[0] - url of the web page to start with
+	 * @param args[1] - Database environment directory
+	 * @param args[2] - maximum file size to download 
+	 * @param args[3] - optional parameter to specify the number of files
+	 * to crawl.
+	 */
+	private static ThreadPool pool;
+	public static void main(String args[])
+	{
+		if(args.length < 3) return;
+		initialize(args[0], args[1], args[2], args[3]);
+		while(true){
+			try{
+				if(GlobalData.shutdown) break;
+				else if(GlobalData.urlQueue.isEmpty() && pool.allThreadsSleeping())
+					GlobalData.shutdown = true;
+				Thread.sleep(3000);
+			}catch(Exception e){
+				e.printStackTrace();
+			}
+		}
+		System.out.println(FilesDownloadedCounter.getDownloadedFilesCount());
+		pool.shutdownThreadPool();
+		shutdownServicesAndDb();
+	}
+
+	private static void shutdownServicesAndDb() {
+		GlobalData.serviceProvider.shutdownServices();
+		GlobalData.serviceProvider.shutdownDatabase();	
+	}
+
+	private static void initializeUrlQueue() {
+		GlobalData.urlQueue = new Queue();
+	}
+
+	private static void initializeDbServices(String dbLocation){
+		GlobalData.serviceProvider = new ServiceProvider();
+		GlobalData.serviceProvider.setUpDb(dbLocation, false);
+		GlobalData.serviceProvider.instantiateServices();
+
+	}
+
+	private static void initializeThreadPool(){
+		pool = new ThreadPool();
+		pool.startThreadPool();
+	}
+
+	private static void loadDataFromDatabase(){
+		DataLoader.LoadUrlsFromDatabase(GlobalData.serviceProvider.getDocumentService());
+		DataLoader.LoadChannelidXpathsFromDatabase(GlobalData.serviceProvider.getChannelService());
+	}
+
+	private static void initialize(String sUrl, String databaseLocation, String maxFileSize, String numOfFilesLimit){
+		try{
+			initializeDbServices(databaseLocation);
+			loadDataFromDatabase();
+			initializeUrlQueue();
+			initializeThreadPool();
+			GlobalData.urlQueue.enqueueUrl(sUrl);
+			GlobalData.delayTable = new CrawlDelayTable();
+			if(maxFileSize != null){
+				GlobalData.fileSizeLimitInMb = Integer.parseInt(maxFileSize);
+			}
+			if(numOfFilesLimit != null){
+				GlobalData.fileCrawlingLimit = Integer.parseInt(numOfFilesLimit);
+			}
+		}catch(Exception e){
+			System.out.println("Error initializing services");
+			e.printStackTrace();
+		}
+	}
+
+}

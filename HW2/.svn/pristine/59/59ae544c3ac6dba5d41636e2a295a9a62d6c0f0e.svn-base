@@ -1,0 +1,30 @@
+package edu.upenn.cis455.crawler;
+
+import edu.upenn.cis455.components.Queue;
+import edu.upenn.cis455.globaldata.GlobalData;
+
+
+public class XPathCrawler {
+	/**
+	 * 
+	 * @param args[0] - url of the web page to start with
+	 * @param args[1] - Database environment directory
+	 * @param args[2] - maximum file size to download 
+	 * @param args[3] - optional parameter to specify the number of files
+	 * to crawl.
+	 */
+	
+  public static void main(String args[])
+  {
+	if(args.length < 3) return;
+    initializeUrlQueue(args[0]);
+  }
+
+	private static void initializeUrlQueue(String seedUrl) {
+		
+		GlobalData.urlQueue = new Queue();
+		GlobalData.urlQueue.queueUrl(seedUrl);
+		
+	}
+	
+}

@@ -1,0 +1,94 @@
+package edu.upenn.cis455.database;
+
+import java.util.HashSet;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.persist.EntityCursor;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.SecondaryIndex;
+
+import edu.upenn.cis455.dbobjects.Channel;
+import edu.upenn.cis455.dbobjects.Subscriber;
+
+public class SubscriberService {
+
+
+	public SubscriberService(){}
+
+	private EntityStore store;
+	private PrimaryIndex<String, Subscriber> user_channelid;
+	private Environment env;
+	public SubscriberService(EntityStore str, Environment e){
+		store = str;
+		env = e;
+		user_channelid = store.getPrimaryIndex(String.class, Subscriber.class);
+	}
+
+	public boolean subscribe(String owner, String channelname, String subscriber){
+		try{
+			if(owner.equals(subscriber)) return false;
+			ChannelService cs = new ChannelService(store,env);
+			Channel c = cs.getChannel(channelname, owner);
+			String cid = c.getChannelid();
+			Subscriber us = user_channelid.get(subscriber);
+			if(us == null){
+				us = new Subscriber();
+				us.setSubscriber(subscriber);
+				us.addChannelId(cid);
+			}
+			else{
+				us.addChannelId(cid);
+			}
+			user_channelid.put(us);
+			env.sync();
+			return true;
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	public void unsubscribe(String username, String channelname, String subscriber){
+		try{
+			ChannelService cs = new ChannelService(store,env);
+			Channel c = cs.getChannel(channelname, username);
+			String cid = c.getChannelid();
+			Subscriber us = user_channelid.get(subscriber);
+			if(us != null){
+				us.removeChannelid(cid);
+				user_channelid.put(us);
+				env.sync();
+			}
+		}
+		catch(Exception e){}
+	}
+
+	public HashSet<String> getSubscriptionList(String subscriber){
+		try{
+			Subscriber s = user_channelid.get(subscriber);
+			if(s != null) return s.getChannelids();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public void printSubscriptionList(){
+		try{
+			EntityCursor<Subscriber> records = user_channelid.entities();
+			for(Subscriber s : records){
+				StringBuffer sb = new StringBuffer();
+				for(String cid : s.getChannelids()){
+					sb.append(cid + "\n");
+				}
+				System.out.println(s.getSubscriber() + ":" + sb);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	
+}

@@ -1,0 +1,107 @@
+package edu.upenn.cis455.dbservice;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.persist.EntityCursor;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+
+import edu.upenn.cis455.dbobjects.Document;
+public class DocumentService {
+
+	public DocumentService(){}
+
+	private PrimaryIndex<String,Document> docurl;
+	private Environment env;
+
+	public DocumentService(EntityStore store, Environment e){
+		env = e;
+		docurl = store.getPrimaryIndex(String.class, Document.class);
+	}
+
+	public void addDocument(String url, String content){
+
+		try{
+			if(docurl.contains(url)){
+				Document d = docurl.get(url);
+				d.setDocumentContent(content);
+				d.setNowAsLastCrawled();
+				docurl.put(d);
+				env.sync();
+			}
+			else{
+				Document d = new Document(url, content, new Date());
+				docurl.put(d);
+				env.sync();
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	public void deleteDocument(String url){
+		try{
+			docurl.delete(url);
+			env.sync();
+		}
+		catch(Exception e){}
+	}
+
+
+	public HashMap<String,Date> getUrlList(){
+		HashMap<String,Date> urlList = new HashMap<String,Date>();
+		EntityCursor<Document> records = docurl.entities();
+		try{
+			if(records != null){
+				for(Document d : records){
+					urlList.put(d.getDocumentUrl(), d.getLastCrawled());
+				}
+				return urlList;
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			records.close();
+		}
+		return null;
+	}
+
+	public String getDocumentContent(String url){
+		try{
+			String content = docurl.get(url).getDocumentContent();
+			return content;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public Document getDocument(String url){
+		try{
+			Document d = docurl.get(url);
+			return d;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	
+	public void printDocument(){
+		EntityCursor<Document> doc = docurl.entities();
+		try{
+			for(Document d : doc){
+				System.out.println(d.getDocumentUrl());
+				System.out.flush();
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			doc.close();
+		}
+	}
+
+}

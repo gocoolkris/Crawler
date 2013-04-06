@@ -1,0 +1,291 @@
+package edu.upenn.cis455.parser;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+
+public class XPathGrammar {
+
+	private String xpath, subpath, removedString;
+	private Document doc, curr;
+	public XPathGrammar(String xpathcondn, Document d){
+		this.xpath = xpathcondn;
+		doc = d;
+		curr = d;
+		subpath = xpath;
+		removedString = "";
+	}
+
+	public boolean isValidXpath(Node node){
+		if(!isAxis()) return false;
+		if(!isValidStep(node)) return false;
+		return true;
+	}
+
+	private boolean isValidStep(Node node) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	/**
+	 * checks whether the subpath starts with a
+	 * "/" mentioned as a part of the xpath grammar.
+	 * @return true if the subpath of the xpath 
+	 * starts with a "/", false otherwise.
+	 */
+	private boolean isAxis() {
+		if(subpath.startsWith("/")){
+			removedString = "/";
+			subpath = subpath.replaceFirst("/", "");
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * A given subpath expression is a valid test expression 
+	 * if it is on one of the following form 
+	 * test -> step
+	 *      -> text() = "......"
+	 *      -> contains(text(), ".....")
+	 *      -> @attname = "......"
+	 * and the xml has such text/ attribute value.
+	 * @param node - current node of the Xpath predicate.
+	 * @return true if the subpath is a valid test expression,
+	 * false otherwise.
+	 */
+	private boolean isValidTestExpression(Node node){
+		if(textEqualsForm(node) || containsTextSubStringForm(node) ||
+				hasAttributeValueForm(node)) return true;
+		if(isValidStep(node)) return true;
+		return false;
+	}
+
+	/**
+	 * Takes a node and validates whether the given XPath is of the
+	 * form [text() = "...."]. If it is so, it validates the subpath
+	 * for this current node. Returns false otherwise. If the root node is
+	 * not of the form
+	 * @param currentNode - node that is being validated against
+	 * @return - true if the XPath condition is valid just for this
+	 * currentNode, false otherwise.
+	 */
+	private boolean textEqualsForm(Node currentNode) {
+		subpath = subpath.trim();
+		if(subpath.startsWith("[")){
+			subpath = subpath.replaceFirst("[", "").trim();
+			if(subpath.startsWith("text()")){
+				subpath = subpath.replaceFirst("text()", "").trim();
+				if(subpath.startsWith("=")){
+					subpath = subpath.replaceFirst("=", "").trim();
+					String pattern = "\".+\"";
+					Pattern p = Pattern.compile(pattern);
+					Matcher m = p.matcher(subpath);
+					if(m.lookingAt()){
+						String textValue = subpath.substring(m.start() + 
+								1, m.end() -1);
+						if(currentNode.getTextContent().equals(textValue)){
+							String text = "\"" + textValue + "\"";
+							subpath = subpath.replaceFirst(text, "").trim();
+							subpath = subpath.replaceFirst("]", "").trim();
+							return true;
+						}
+						else {//if the pattern is [text()=".." 
+							//but the condition is not true
+							//back up the tokens removed.
+							subpath = "[text() = " + subpath;
+							return false;
+						}
+					}
+					else{ //if the pattern is not [text()=".." 
+						//unless the given grammar is invalid this
+						//should never execute.
+						subpath = "[text() = " + subpath;
+						return false;
+					}
+				}
+			}
+			else{ //if it starts with "[" but does not have text()
+				subpath = "[" + subpath;
+				return false;
+			}
+		}
+		return false;
+	}
+
+
+	/**
+	 * Checks whether the initial subpart of the XPath expression 
+	 * is of the form
+	 * <b>contains(text(), ".....")</b>
+	 * Takes the current node in context and checks whether the given
+	 * text is contained in the text of the node.
+	 * @param node - context node.
+	 * @return - true if the context node contains a substring that is
+	 * in the Xpath condition; false otherwise.
+	 */
+	private boolean containsTextSubStringForm(Node node){
+
+		if(subpath.startsWith("[")){
+			subpath = subpath.replaceFirst("[", "").trim();
+			if(subpath.startsWith("contains(")){
+				subpath = subpath.replaceFirst("contains(", "").trim();
+				if(subpath.startsWith("text()")){
+					subpath = subpath.replaceFirst("text()", "").trim();
+					if(subpath.startsWith(",")){
+						subpath = subpath.replaceFirst(",","");
+						String pattern = "\".+\"";
+						Pattern p = Pattern.compile(pattern);
+						Matcher m = p.matcher(subpath);
+						if(m.lookingAt()){
+							String textValue = subpath.substring(m.start() + 
+									1, m.end() -1);
+							if(node.getTextContent().contains(textValue)){
+								String text = "\"" + textValue + "\"";
+								subpath = subpath.replaceFirst(text, "").trim();
+								subpath = subpath.replaceFirst("\\)[ ]*\\]", "").trim();
+								return true;
+							}
+							else{//if the substring is not a match  
+								//backs up the tokens removed and
+								//returns false.
+								subpath = "[contains(text()," + subpath;
+								return false;
+							}
+						}
+						else{  //this happens if the Xpath is not 
+							//valid grammar. It again backups the 
+							//tokens and returns false.
+							subpath = "[contains(text()," + subpath;
+							return false;
+						}
+					}
+					else{  // backs up the tokens parsed
+						// and returns false.
+						subpath = "[contains(text()" + subpath;
+						return false;
+					}
+				}
+				else{ // if the contains( is not followed by
+					//text() string it backup and returns false.
+					subpath = "[contains(" + subpath;
+					return false;
+				}
+			}
+			else{  // if the token is not "contains("
+				// backups the open square bracket
+				//returns false.
+				subpath = "[" + subpath;
+				return false;
+			}
+		}
+		return false;
+	}
+
+
+	/**
+	 * It checks whether the given xpath condition is of the
+	 * form, 
+	 * @param node - the context node to be checked with.
+	 * @return true if the xpath condition is of the form,
+	 * "@attname = "....." and the current node contains an
+	 * attribute of the specified value, false otherwise.
+	 */
+	private boolean hasAttributeValueForm(Node node){
+
+		if(subpath.startsWith("[")){
+			subpath = subpath.replaceFirst("[", "").trim();
+			if(subpath.startsWith("@")){
+				subpath = subpath.replaceFirst("@", "");
+				String pattern = "[a-zA-Z]+";
+				Pattern p = Pattern.compile(pattern);
+				Matcher m = p.matcher(subpath);
+				if(m.lookingAt()){
+					String attributeName = subpath.substring(m.start(),m.end());
+					subpath = subpath.replaceFirst(attributeName, "");
+					subpath = subpath.replaceFirst("[ ]*(=)[ ]*", "");
+					pattern = "\".+\"";
+					p = Pattern.compile(pattern);
+					m = p.matcher(subpath);
+					if(m.lookingAt()){
+						String attributeValue = subpath.substring(m.start() + 1, m.end() - 1);
+						if(containsAttribute(node,attributeName, attributeValue)){
+						String attVal = "\"" + attributeValue + "\"";
+						subpath = subpath.replaceFirst(attVal, "").trim();
+						subpath = subpath.replaceFirst("]","").trim();
+						return true;
+						}
+						else{  //if the context node does not have an
+							   //attribute of the specified value.
+							   // backups tokens and returns false.
+							subpath = "[@" + attributeName + " = " + subpath;
+							return false;
+						}
+					}
+					else{  //if the parse subpath is of the form
+						  // "[@attname = " but the attributevalue  
+						  // does not start with "..."
+						  //backup the tokens and returns false.
+						subpath = "[@" + attributeName + " = " + subpath;
+						return false;
+					}
+				}
+				else{ // if the xpath subpath is of the form "[@"
+				      // but the attribute name is missing. 
+					  // backs up the tokens and returns false.
+					subpath = "[@" + subpath;
+					return false;
+				}
+			}
+			else{ //if the subpath is not of the form
+				  // @att="..." backs up the "[" 
+				  //and returns false.
+				subpath = "[" + subpath;
+				return false;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Returns true if the containing node has given attribute of
+	 * specified value.
+	 * @param node - node whose attributes are to checked
+	 * @param attributeName - the name of the attribute 
+	 * @param attributeValue - the value of the attribute of the node.
+	 * @return true if the node passed in has an attribute of a given
+	 * value, false otherwise.
+	 */
+	private boolean containsAttribute(Node node, String attributeName,
+			String attributeValue) {
+		NamedNodeMap attList = node.getAttributes();
+		if(attList == null || (attList.getLength() == 0)) return false;
+		for(int i = 0; i < attList.getLength(); ++i){
+			Node attribute = attList.item(i);
+			if(attribute.getNodeName().equals(attributeName) &&
+					attribute.getNodeValue().equals(attributeValue))
+				return true;
+		}
+		return false;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}

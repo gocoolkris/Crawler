@@ -1,0 +1,33 @@
+package edu.upenn.cis455.components;
+
+
+public class FilesDownloadedCounter {
+
+	private static Object counterlock = new Object();
+	private static int filedownloadCount;
+	
+	/**
+	 * public static method that keeps counting the number of 
+	 * files downloaded currently. Each thread that downloads a
+	 * file keeps incrementing the download count.
+	 */
+	public static void incrementCounter(){
+		synchronized(counterlock){
+			if(filedownloadCount >= GlobalData.fileCrawlingLimit){
+				GlobalData.shutdown = true;
+			}
+			else filedownloadCount++;
+		}
+	}
+	
+	/**
+	 * @return the number of files downloaded
+	 * at the point of time the method was called.
+	 */
+	public static int getDownloadedFilesCount(){
+		synchronized(counterlock){
+			return filedownloadCount;
+		}
+	}
+	
+}

@@ -1,0 +1,68 @@
+package edu.upenn.cis455.servlet;
+
+import java.io.PrintWriter;
+
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import edu.upenn.cis455.dbobjects.Channel;
+import edu.upenn.cis455.dbservice.ChannelService;
+import edu.upenn.cis455.dbservice.DbStoreSetup;
+
+public class AddChannelServlet extends HttpServlet{
+
+
+	public void doGet(HttpServletRequest request, HttpServletResponse response){
+		try{
+			PrintWriter writer = response.getWriter();
+			writer.print("<html><head><title>AddChannel</title></head>");
+			writer.print("<body><div align=\"center\"><h2>AddChannel</h2></div>");
+			writer.print("<div align=\"center\"><form action=\"addchannel\" method=\"POST\">");
+			writer.print("ChannelName <input type=\"text\" name=\"channelname\"><br>");
+			writer.print("XSLT link <input type=\"text\" name=\"xsltlink\"><br>");
+			writer.print("Xpaths <textarea name=\"xpaths\" rows=\"10\" cols=\"50\"><br>");
+			writer.print("<input type=\"submit\" value=\"Create\">");
+			writer.print("</form></div></body></html>");
+			writer.flush();
+		}catch(Exception e){}
+	}
+	
+	public void doPost(HttpServletRequest request, HttpServletResponse response){
+		try{
+			HttpSession session = request.getSession();
+			if(session == null || session.getAttribute("username") == null){
+				response.sendRedirect("/login");
+			}
+			else{
+				String username = (String)session.getAttribute("username");
+				String channelName = request.getParameter("channelname");
+				String xslturl = request.getParameter("xslturl");
+				String xpath = request.getParameter("xpaths");
+				String dbLocation = this.getServletContext().getInitParameter("BDBstore");
+				DbStoreSetup setup = new DbStoreSetup(dbLocation,false);
+				ChannelService cs = new ChannelService(setup.getEntityStore(), setup.getEnvironment());
+				Channel c = cs.getChannel(channelName, username);
+				if(c!= null){
+					PrintWriter writer = response.getWriter();
+					writer.print("<html><head><title>AddChannel</title></head>");
+					writer.print("<body><div align=\"center\"><h2>AddChannel</h2></div>");
+					writer.print("<div align=\"center\"><b><i>ChannelName Exists</i></b></div>");
+					writer.print("<div align=\"center\"><form action=\"addchannel\" method=\"POST\">");
+					writer.print("ChannelName <input type=\"text\" name=\"channelname\"><br>");
+					writer.print("XSLT link <input type=\"text\" name=\"xsltlink\"><br>");
+					writer.print("Xpaths <textarea name=\"xpaths\" rows=\"10\" cols=\"50\"><br>");
+					writer.print("<input type=\"submit\" value=\"Create\">");
+					writer.print("</form></div></body></html>");
+					writer.flush();
+				}
+				else{
+					response.sendRedirect("/home");
+				}
+			}
+		}catch(Exception e){}
+		
+	}
+	
+}

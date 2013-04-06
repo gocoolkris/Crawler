@@ -1,0 +1,43 @@
+package edu.upenn.cis455.dbobjects;
+
+
+
+import java.util.HashSet;
+
+
+import com.sleepycat.persist.model.Entity;
+import com.sleepycat.persist.model.PrimaryKey;
+
+
+@Entity
+public class ChannelContent {
+
+	public ChannelContent(){}
+	
+	
+	
+	@PrimaryKey
+	private String channelid;
+	public String getChannelid() {
+		return channelid;
+	}
+
+	public void setChannelid(String channelid) {
+		this.channelid = channelid;
+	}
+	
+	private HashSet<String> urlList;
+	public HashSet<String> getUrlList() {
+		return urlList;
+	}
+
+	public void addUrlToList(String url) {
+		if(urlList == null){
+			urlList = new HashSet<String>();	
+		}
+		urlList.add(url);
+	}
+
+	
+	
+}

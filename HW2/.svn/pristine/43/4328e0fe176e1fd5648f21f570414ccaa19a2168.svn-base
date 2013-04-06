@@ -1,0 +1,51 @@
+package test.edu.upenn.cis455;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+import edu.upenn.cis455.httpclient.HttpClient;
+import edu.upenn.cis455.validator.DoMTreeBuilder;
+import junit.framework.TestCase;
+
+public class DoMTreeBuilderTest extends TestCase {
+
+	HttpClient client;
+	protected void setUp() throws Exception {
+		super.setUp();
+	}
+
+	public void testDoMTreeBuilder() {
+		String url = "/home/cis455/Documents/web.xml";//"http://crawltest.cis.upenn.edu/nytimes/";
+		client = new HttpClient(url);
+		String contents = client.getDocument().toString();
+		System.out.println(contents);
+		DoMTreeBuilder builder = new DoMTreeBuilder(contents, url);
+		Document doc = builder.getDocumentNode();
+		Node root = (Node) doc;
+		printAllChildren(root);
+	}
+	
+	
+	private void printAllChildren(Node root){
+		
+		if(root == null) return;
+		NodeList children = root.getChildNodes();
+		for(int i = 0; i < children.getLength(); ++i){
+			Node child = children.item(i);
+			NodeList subnodes = child.getChildNodes();
+			for(int j = 0; j < subnodes.getLength(); ++j){
+				int type = subnodes.item(j).getNodeType();
+				if(type == Node.TEXT_NODE){
+					System.out.println(child.getNodeName() + ":" + subnodes.item(j).getNodeValue());
+				}
+			}
+			printAllChildren(child);
+		}
+	}
+
+	public void testGetDocumentNode() {
+		fail("Not yet implemented");
+	}
+
+}

@@ -1,0 +1,70 @@
+package edu.upenn.cis455.dbservice;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.persist.EntityStore;
+
+public class ServiceProvider {
+
+	public ServiceProvider(){}
+
+	private EntityStore store;
+	private Environment env;
+	private ChannelContentService ccs;
+	private ChannelService channelService;
+	private UserService userService;
+	private DocumentService documentService;
+	private SubscriberService subscriberService;
+
+
+	public void setUpDb(String location, boolean openInReadOnly){
+		DbStoreSetup setup = new DbStoreSetup(location, openInReadOnly);
+		store = setup.getEntityStore();
+		env = setup.getEnvironment();
+	}
+
+	public void instantiateServices(){
+		ccs = new ChannelContentService(store, env);
+		channelService = new ChannelService(store, env);
+		userService = new UserService(store, env);
+		documentService = new DocumentService(store, env);
+		subscriberService = new SubscriberService(store, env);
+	}
+
+	public ChannelContentService getCcs() {
+		return ccs;
+	}
+
+	public ChannelService getChannelService() {
+		return channelService;
+	}
+
+	public UserService getUserService() {
+		return userService;
+	}
+
+	public DocumentService getDocumentService() {
+		return documentService;
+	}
+
+	public SubscriberService getSubscriberService() {
+		return subscriberService;
+	}
+	
+	public void shutdownServices(){
+		ccs = null;
+		channelService = null;
+		userService = null;
+		documentService = null;
+		subscriberService = null;
+	}
+	
+	public void shutdownDatabase(){
+		try{
+		env.sync();
+		store.close();
+		env.close();
+		}catch(Exception e){}
+	}
+	
+	
+}

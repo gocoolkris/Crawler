@@ -1,0 +1,60 @@
+package edu.upenn.cis455.parser;
+
+import edu.upenn.cis455.httpclient.HttpClient;
+import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Scanner;
+
+public class Parser {
+
+
+	private String url;
+	private boolean isLocalFile;
+	private String file;
+	private StringBuffer document;
+
+	public Parser(String Url){
+		this.url = Url;
+		document = new StringBuffer();
+		setIsLocalFile();
+	}
+
+	private void setIsLocalFile(){
+		try {
+			URL Url = new URL(url);
+			if(url.startsWith("http://localhost")){
+				isLocalFile  = true;
+			}
+			else isLocalFile = false;
+			file = Url.getFile();
+		} catch (MalformedURLException e) {
+			isLocalFile = true;
+			file = url;
+		}
+	}
+
+	private void fetchDocument(){
+		if(isLocalFile){
+			File f = new File(file);
+			try{
+				Scanner sc = new Scanner(f);
+				while(sc.hasNextLine()){
+					document.append(sc.nextLine() + "\n");
+				}
+				sc.close();
+			}
+			catch(Exception e){}
+		}
+		else{
+			HttpClient httpclient = new HttpClient(url);
+			document = httpclient.getDocument();
+		}
+	}
+	
+	public String fileContents(){
+		fetchDocument();
+		return document.toString();
+	}
+	
+}

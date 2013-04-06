@@ -1,0 +1,19 @@
+package edu.upenn.cis455.globaldata;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+
+import edu.upenn.cis455.components.Queue;
+
+public class GlobalData {
+
+	
+	public static HashMap<String,Date> dbCopyOfUrls = new HashMap<String,Date>();
+	
+	public static int crawlingLimit = 10000;
+	public static boolean shutdown = false;
+	public static final int CRAWLER_THREADCOUNT = 10;
+	public static Queue urlQueue;
+	
+}

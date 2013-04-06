@@ -1,0 +1,64 @@
+package edu.upenn.cis455.crawler;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.util.ArrayList;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.w3c.tidy.Tidy;
+
+public class LinkExtractor {
+
+	public LinkExtractor(){}
+
+	private URL url;
+	private String contents;
+	private Document doc;
+	private ArrayList<String> extractedLinks;
+	public LinkExtractor(String url, String contents){
+		try{
+			this.url = new URL(url);
+			this.contents = contents;
+			extractedLinks = new ArrayList<String>();
+		}catch(Exception e){}
+	}
+
+	public void parseDocument(){
+		Tidy tidy = new Tidy();
+		InputStream in = new ByteArrayInputStream(contents.getBytes());
+		doc = tidy.parseDOM(in, null);
+	}
+
+	public ArrayList<String> getLinks(){
+		NodeList anchors = doc.getElementsByTagName("a");
+		for(int i = 0; i < anchors.getLength(); ++i){
+			Node anchor = anchors.item(i);
+			extractLinks(anchor);
+		}
+		return extractedLinks;
+	}
+
+
+	private void extractLinks(Node a){
+		
+		NamedNodeMap attr = a.getAttributes();
+		Node n = attr.getNamedItem("href");
+		String link = n.getNodeValue();
+		if(link.startsWith("http")){
+			//dont do anything
+		}
+		else if(link.startsWith("www.")){
+			link = "http://" + link;
+		}
+		else{
+			link = "http://" + url.getHost() + "/" + link;
+		}
+		extractedLinks.add(link);
+	}
+	
+	
+}

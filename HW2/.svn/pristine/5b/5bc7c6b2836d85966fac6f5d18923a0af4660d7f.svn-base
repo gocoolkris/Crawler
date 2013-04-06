@@ -1,0 +1,393 @@
+package edu.upenn.cis455.validator;
+
+import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+
+public class XPathValidator {
+
+	private Document doc;
+
+	/**
+	 * @param d - document to be validated against.
+	 */
+	public XPathValidator(Document d){
+		doc = d;
+	}
+
+	/**
+	 * Wrapper method that calls other methods which validates
+	 * the xpath against the passed in xml/html document.
+	 * @param xpath - the xpath passed in from the servlet.
+	 * @return - true if the xpath is valid such that there exists
+	 * a node against the xpath expression, false otherwise.
+	 */
+	public boolean validateXpath(String xpath){
+		Node root = (Node) doc;
+		return doesSatisfyXpath(root, xpath);
+	}
+
+
+	/**
+	 * the Xpath expression could be of the following 
+	 * form:
+	 * XPath -> axis step
+	 * axis  -> /
+	 * step  -> nodename ([ test ])*(axis step)?
+	 * test  -> step
+	 * test  -> text() = "...."
+	 * test  -> contains(text(), "....")
+	 * test  -> @attname = "....."
+	 * @param node - the root node of the document parsed.
+	 * @return true if the Xpath expression is valid for
+	 * the passed in document, false otherwise.
+	 */
+	public boolean doesSatisfyXpath(Node node, String xpath){
+		if(node == null || xpath.isEmpty()) return false;
+		xpath = xpath.replaceFirst("/", "").trim();
+		NodeList nList = node.getChildNodes();
+		if(nList == null) return false;
+		for(int i = 0; i < nList.getLength(); ++i){
+			Node child = nList.item(i);
+			if(doesSatisfyStep(child,xpath)) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * A step is of the form
+	 * step->nodename ([test])*(axis step)?
+	 * @param node - node to be validated against.
+	 * @param xpath - the valid xpath that is to be validated against
+	 * the given document.
+	 * @return true if the node satisfies the xpath condition.
+	 */
+	private boolean doesSatisfyStep(Node node, String xpath) {
+		if(node == null) return false;
+		String nodename = getNodeNameFromXpath(xpath);
+		String xmlNodename = node.getNodeName();
+		if(nodename == null) return false;
+		if(nodename.equals(xmlNodename)){
+			xpath = xpath.replaceFirst(nodename, "").trim();
+			ArrayList<String> exps = getTestExpressions(xpath);
+			if(exps != null){
+				for(String exp : exps){
+					if(!doesSatisfyTestExpression(node,exp)) return false;
+					xpath = xpath.substring(getExpressionEndIndex(xpath) + 1);
+				}
+			}
+			if(!xpath.trim().isEmpty()){
+				if(!doesSatisfyXpath(node, xpath)) return false;
+			}
+			return true;
+		}
+		return false;
+	}
+
+
+	/**
+	 * @param node - node to be validated against.
+	 * @param exp - the String to evaluated.
+	 * @return true if the node satisfies the test Expression,
+	 * false otherwise.
+	 */
+	private boolean doesSatisfyTestExpression(Node node, String exp) {
+		if(textEqualsForm(node, exp) || containsTextSubStringForm(node, exp)
+				|| hasAttributeValueForm(node, exp)) return true;
+		NodeList children = node.getChildNodes();
+		for(int i = 0; i < children.getLength(); ++i){
+			Node child = children.item(i);
+			if(doesSatisfyStep(child, exp)) return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Helper method that returns the index of the end of a 
+	 * test Expresssion.
+	 * @param subpath - the string from which the index is to be
+	 * located.
+	 * @return the index of the end of the expression.
+	 */
+	private int getExpressionEndIndex(String subpath) {
+		int brace = 0, expIndex = 0;
+		subpath = subpath.trim();
+		while(expIndex < subpath.length()){
+			if(subpath.charAt(expIndex) == '[') brace++;
+			if(subpath.charAt(expIndex) == ']') brace--;
+			if(brace == 0) return expIndex;
+			expIndex++;
+		}
+		return 0;
+	}
+
+	/**
+	 * helper method that parses the list of test metasymbol and returns
+	 * them as an arraylist.
+	 * @param subpath - the xpath from which a list of test meta-symbol is 
+	 * to be extracted.
+	 * @return an ArrayList of String each of which is a test meta-symbol
+	 */
+	private ArrayList<String> getTestExpressions(String subpath) {
+
+		if(subpath.isEmpty() || (!subpath.startsWith("["))){
+			return null;
+		}
+		ArrayList<String> expr = new ArrayList<String>();
+		while((!subpath.trim().isEmpty()) && (subpath.startsWith("["))){
+			int startIndex = 0, index = 0;
+			int brace = 0;
+			while(index < subpath.length()){
+				if(subpath.charAt(index) == '[') brace++;
+				else if(subpath.charAt(index) == ']') brace--;
+				if(brace == 0){
+					String ex = subpath.substring(startIndex + 1, index);
+					subpath = subpath.substring(index + 1).trim();
+					expr.add(ex);
+					break;
+				}
+				index++;
+			}
+		}
+		return expr;
+	}
+
+	/**
+	 * helper method that extracts the nodename occuring at the 
+	 * beginning of the xpath.
+	 * @param xpath - the xpath from which the nodename is to be
+	 * extracted.
+	 * @return the nodename in the xpath.
+	 */
+	private String getNodeNameFromXpath(String xpath) {
+		if(xpath == null) return null;
+		String pattern = "[a-zA-Z][a-zA-Z0-9_\\-\\.]*";
+		Pattern p = Pattern.compile(pattern);
+		Matcher m = p.matcher(xpath);
+		if(m.lookingAt()){
+			String nodename = xpath.substring(m.start(),m.end());
+			return nodename;
+		}
+		return null;
+	}
+
+	/**
+	 * Takes a node and validates whether the given XPath is of the
+	 * form [text() = "...."]. If it is so, it validates the subpath
+	 * for this current node. Returns false otherwise. If the root node is
+	 * not of the form
+	 * @param currentNode - node that is being validated against
+	 * @return - true if the XPath condition is valid just for this
+	 * currentNode, false otherwise.
+	 */
+	private boolean textEqualsForm(Node currentNode, String subpath) {
+		subpath = subpath.trim();
+		String pattern = "[ ]*text[ ]*\\([ ]*\\)[ ]*";
+		Pattern p = Pattern.compile(pattern);
+		Matcher m = p.matcher(subpath);
+		if(m.lookingAt()){
+			String textString = subpath.substring(m.start(), m.end());
+			subpath = subpath.replace(textString, "").trim();
+			if(subpath.startsWith("=")){
+				subpath = subpath.replaceFirst("=", "").trim();
+				pattern = "\".+\"";
+				p = Pattern.compile(pattern);
+				m = p.matcher(subpath);
+				if(m.lookingAt()){
+					String textValue = subpath.substring(m.start() + 
+							1, m.end() -1);
+					if(equalsTextValue(currentNode, textValue)){
+						String text = "\"" + textValue + "\"";
+						subpath = subpath.replaceFirst(text, "").trim();
+						return true;
+					}
+					else {//if the pattern is [text()=".." 
+						//but the condition is not true
+						//back up the tokens removed.
+						subpath = "text() = " + subpath;
+						return false;
+					}
+				}
+				else{ //if the pattern is not [text()=".." 
+					//unless the given grammar is invalid this
+					//should never execute.
+					subpath = "text() = " + subpath;
+					return false;
+				}
+			}
+		}
+		else{ //if it starts with "[" but does not have text()
+			return false;
+		}
+		return false;
+	}
+
+
+	/**
+	 * helper method.
+	 * @param node - node to be examined.
+	 * @param textValue - the textvalue to be compared with.
+	 * @return true if the node text is equal to the passed in 
+	 * text value, false otherwise.
+	 */
+	private boolean equalsTextValue(Node node, String textValue){
+		if(node == null) return false;
+		else{
+			NodeList children = node.getChildNodes();
+			for(int i = 0; i < children.getLength(); ++i){
+				Node child = children.item(i);
+				int type = child.getNodeType();
+				if(type == Node.TEXT_NODE){
+					String nodeText = child.getNodeValue();
+					if(textValue.equals(nodeText)) return true;
+				}
+			}
+			return false;
+		}
+	}
+
+
+	/**
+	 * Checks whether the initial subpart of the XPath expression 
+	 * is of the form
+	 * <b>contains(text(), ".....")</b>
+	 * Takes the current node in context and checks whether the given
+	 * text is contained in the text of the node.
+	 * @param node - context node.
+	 * @return - true if the context node contains a substring that is
+	 * in the Xpath condition; false otherwise.
+	 */
+	private boolean containsTextSubStringForm(Node node, String subpath){
+		if(node == null) return false;
+		subpath = subpath.trim();
+		String pattern = "contains[ ]*\\([ ]*text[ ]*\\([ ]*\\)[ ]*,";
+		Pattern p = Pattern.compile(pattern);
+		Matcher m = p.matcher(subpath);
+		if(m.lookingAt()){
+			subpath = subpath.substring(m.end()).trim();
+			pattern = "\".+\"";
+			p = Pattern.compile(pattern);
+			m = p.matcher(subpath);
+			if(m.lookingAt()){
+				String substring = subpath.substring(m.start() + 1, m.end() - 1);
+				if(containsText(node, substring)){
+					return true;
+				}
+				else return false;
+			}
+			else return false;
+		}
+		else return false;
+	}
+
+
+
+	/**
+	 * helper method.
+	 * @param node - node whose text value is to be examined.
+	 * @param text - the text to be compared with.
+	 * @return true if the node value contains the text,
+	 * false otherwise.
+	 */
+	private boolean containsText(Node node, String text){
+		if(node == null) return false;
+		NodeList children = node.getChildNodes();
+		for(int i = 0; i < children.getLength(); i++){
+			Node child = children.item(i);
+			int type = child.getNodeType();
+			if(type == Node.TEXT_NODE){
+				if(child.getNodeValue().contains(text)) return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * It checks whether the given xpath condition is of the
+	 * form, 
+	 * @param node - the context node to be checked with.
+	 * @return true if the xpath condition is of the form,
+	 * "@attname = "....." and the current node contains an
+	 * attribute of the specified value, false otherwise.
+	 */
+	private boolean hasAttributeValueForm(Node node, String subpath){
+		if(node == null) return false;
+		subpath = subpath.trim();
+		if(subpath.startsWith("@")){
+			subpath = subpath.replaceFirst("@", "");
+			String pattern = "[a-zA-Z_0-9\\-\\.[^ ]]+";
+			Pattern p = Pattern.compile(pattern);
+			Matcher m = p.matcher(subpath);
+			if(m.lookingAt()){
+				String attributeName = subpath.substring(m.start(),m.end());
+				subpath = subpath.replaceFirst(attributeName, "");
+				subpath = subpath.replaceFirst("[ ]*(=)[ ]*", "");
+				pattern = "\".+\"";
+				p = Pattern.compile(pattern);
+				m = p.matcher(subpath);
+				if(m.lookingAt()){
+					String attributeValue = subpath.substring(m.start() + 1, m.end() - 1);
+					if(containsAttribute(node,attributeName, attributeValue)){
+						String attVal = "\"" + attributeValue + "\"";
+						subpath = subpath.replaceFirst(attVal, "").trim();
+						subpath = subpath.replaceFirst("]","").trim();
+						return true;
+					}
+					else{  //if the context node does not have an
+						//attribute of the specified value.
+						// backups tokens and returns false.
+						subpath = "@" + attributeName + " = " + subpath;
+						return false;
+					}
+				}
+				else{  //if the parse subpath is of the form
+					// "[@attname = " but the attributevalue  
+					// does not start with "..."
+					//backup the tokens and returns false.
+					subpath = "@" + attributeName + " = " + subpath;
+					return false;
+				}
+			}
+			else{ // if the xpath subpath is of the form "[@"
+				// but the attribute name is missing. 
+				// backs up the tokens and returns false.
+				subpath = "@" + subpath;
+				return false;
+			}
+		}
+		else{ //if the subpath is not of the form
+			// @att="..." backs up the "[" 
+			//and returns false.
+			return false;
+		}
+	}
+
+	/**
+	 * Returns true if the containing node has given attribute of
+	 * specified value.
+	 * @param node - node whose attributes are to checked
+	 * @param attributeName - the name of the attribute 
+	 * @param attributeValue - the value of the attribute of the node.
+	 * @return true if the node passed in has an attribute of a given
+	 * value, false otherwise.
+	 */
+	private boolean containsAttribute(Node node, String attributeName,
+			String attributeValue) {
+		if(node == null) return false;
+		NamedNodeMap attList = node.getAttributes();
+		if(attList == null || (attList.getLength() == 0)) return false;
+		for(int i = 0; i < attList.getLength(); ++i){
+			Node attribute = attList.item(i);
+			if(attribute.getNodeName().equals(attributeName) &&
+					attribute.getNodeValue().equals(attributeValue))
+				return true;
+		}
+		return false;
+	}
+
+}

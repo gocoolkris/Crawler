@@ -1,0 +1,77 @@
+package test.edu.upenn.cis455;
+
+import edu.upenn.cis455.validator.GrammarValidator;
+import junit.framework.TestCase;
+
+public class GrammarValidatorTest extends TestCase {
+
+	GrammarValidator validator;
+	protected void setUp() throws Exception {
+		validator = new GrammarValidator();
+	}
+
+	public void testIsValidXpath() {
+		assertTrue(validator.isValidXpath("/a/b"));
+		assertTrue(validator.isValidXpath("/blah[@name=\"gokul\"]"));
+		assertTrue(validator.isValidXpath("/this/that[foo[text() = \"something\"]][bar]"));
+		assertTrue(validator.isValidXpath("/d/e/f[foo[text() = \"\"]][bar]"));
+		assertTrue(validator.isValidXpath("/a/ b/c[text() = \"\"][bar[foo/bar[text()=" +
+				"\"\"][contains(text(),\"\")]]]"));
+		assertTrue(validator.isValidXpath("/foo-name/bar/xyz"));
+		assertTrue(validator.isValidXpath("/foo/bar[x/y]"));
+		assertTrue(validator.isValidXpath("/foo/bar[text() = \"gokul\"]"));
+		assertTrue(validator.isValidXpath("/foo/bar[contains(text(), \"somesubstring\")]"));
+		assertTrue(validator.isValidXpath("/a"));
+	}
+
+	public void testIsAxis() {
+		assertTrue(validator.isAxis("/  "));
+		assertFalse(validator.isAxis(" "));
+		assertFalse(validator.isAxis("  /"));
+	}
+
+	public void testIsValidStep() {
+		assertTrue(validator.isValidTestExpression("blah[@name=\"gokul\"]"));
+		assertTrue(validator.isValidTestExpression("this/that[foo[text() = \"something\"]][bar]"));
+		assertTrue(validator.isValidTestExpression("d/e/f[foo[text() = \"\"]][bar]"));
+		assertTrue(validator.isValidTestExpression("a/ b/c[text() = \"\"][bar[foo/bar[text()=" +
+				"\"\"][contains(text(),\"\")]]]"));
+	}
+
+
+	public void testIsValidTestExpression() {
+		assertTrue(validator.isValidTestExpression("foo-name/bar/xyz"));
+		assertFalse(validator.isValidTestExpression("foo/bar/"));
+		assertTrue(validator.isValidTestExpression("foo/bar[text() = \"gokul\"]"));
+		assertTrue(validator.isValidTestExpression("foo/bar[contains(text(), \"somesubstring\")]"));
+		assertTrue(validator.isValidTestExpression("a"));
+		assertTrue(validator.isValidTestExpression("a[@att = \"blah\"]"));
+		assertTrue(validator.isValidTestExpression("a[text() = \"gokul\"]"));
+		assertTrue(validator.isValidTestExpression("a[contains(text(), \"somesubstring\")]"));
+		assertTrue(validator.isValidTestExpression("a/b[text() = \"gokul\"]/c"));
+		
+		
+	}
+
+	public void testContainsTextForm() {
+		assertTrue(validator.containsTextForm("contains(text(),\"gokul\")"));
+		assertTrue(validator.containsTextForm("contains (text(),\"gokul\")"));
+		assertTrue(validator.containsTextForm("contains(   text(  ) ,  \"gokul\" )"));
+	}
+
+	public void testTextEqualsForm() {
+		assertTrue(validator.textEqualsForm("text() = \"gokul\""));
+		assertFalse(validator.textEqualsForm("text()"));
+		assertFalse(validator.textEqualsForm("text() = "));
+		assertFalse(validator.textEqualsForm("text() = \""));
+		assertTrue(validator.textEqualsForm("text()=\"\""));
+	}
+
+	public void testAttributeTextForm() {
+		assertTrue(validator.attributeTextForm("@aa =  \"\""));
+		assertTrue(validator.attributeTextForm("@aa =  \"gokul\""));
+		assertFalse(validator.attributeTextForm("@aa ==  \"gokul\""));
+		assertFalse(validator.attributeTextForm("@    =\"\""));
+	}
+
+}

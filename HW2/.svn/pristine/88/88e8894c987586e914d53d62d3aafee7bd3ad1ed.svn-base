@@ -1,0 +1,99 @@
+package edu.upenn.cis455.components;
+
+import java.net.URL;
+import java.util.Date;
+import java.util.HashSet;
+
+public class CrawlDelayTable {
+
+
+	private static HashSet<CrawlDelay> domainDelayList = new HashSet<CrawlDelay>();
+	private static Object crawldelaylock = new Object();
+
+
+	public void addDomainDelay(String url, int delay){
+		try{
+			URL Url = new URL(url);
+			String domainname = Url.getHost();
+			synchronized(crawldelaylock){
+				CrawlDelay cd = new CrawlDelay(domainname, delay);
+				cd.updateNowAsLastAccessed();
+				domainDelayList.add(cd);
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	public boolean hasEntry(String url){
+		try{
+			URL Url = new URL(url);
+			String dmn = Url.getHost();
+			synchronized(crawldelaylock){
+				for(CrawlDelay cd : domainDelayList){
+					if(cd.domain.equals(dmn)) return true;
+				}
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	public long getWaitingTimeIfAny(String url){
+		try{
+			URL Url = new URL(url);
+			String domainname = Url.getHost();
+			synchronized(crawldelaylock){
+				for(CrawlDelay cd : domainDelayList){
+					if(cd.domain.equals(domainname)){
+						long delay = cd.crawldelay * 1000;
+						long elapsedTimeSinceLastRequest = (new Date().getTime()) - cd.lastAccessed.getTime();
+						if(elapsedTimeSinceLastRequest >= delay) return 0;
+						else return (delay - elapsedTimeSinceLastRequest);
+					}
+				}
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return 0;
+	}
+
+	public void updateNowAsLastAccessedTime(String domainname){
+		synchronized(crawldelaylock){
+			for(CrawlDelay cd : domainDelayList){
+				if(cd.domain.equals(domainname)){
+					cd.updateNowAsLastAccessed();
+					return;
+				}
+			}
+		}
+	}
+
+
+
+	public class CrawlDelay{
+
+		String domain;
+		int crawldelay;
+		Date lastAccessed;
+		public CrawlDelay(String dom, int delay){
+			domain = dom;
+			crawldelay = delay;
+			lastAccessed = new Date();
+		}
+
+		public void updateNowAsLastAccessed(){
+			lastAccessed = new Date();
+		}
+
+		@Override
+		public boolean equals(Object that){
+			if(!(that instanceof CrawlDelay)) return false;
+			CrawlDelay tht = (CrawlDelay) that;
+			if(this.domain.equals(tht.domain)) return true;
+			return false;
+		}
+	}
+}

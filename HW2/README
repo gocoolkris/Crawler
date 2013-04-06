@@ -1,0 +1,49 @@
+Full name:  Gokul Krishnan Ragunathan
+SEAS login: grag
+
+Which features did you implement? 
+  Entire Assignment
+  Extra credits : 
+  multi-threaded server, User subscription (only a part of it -
+  The users can subscribe and unsubscribe to different channels.
+  I do not highlight the channels for which new documents have been matched.)
+   	
+
+Did you complete any extra-credit tasks? If so, which ones?
+ Extra credits : 
+  multi-threaded server, User subscription (only a part of it -
+  The users can subscribe and unsubscribe to different channels.
+  I do not highlight the channels for which new documents have been matched.)
+
+Any special instructions for building and running your solution?
+ I added couple of more packages(edu.upenn.cis455.components, edu.upenn.cis455.dbobjects
+ edu.upenn.cis455.dbservice) - and accordingly edited
+ the build.xml.  The build works fine. I used Jetty to run my serlvet. Hence copied the web.xml into HW2/conf folder. The
+ file mappings are in that web.xml. The starting servlet in my case in LoginServlet which
+ is mapped to "/login".
+
+Once you create a user and login, you can add channel. Multiple xpaths
+are seperated by ";"(semicolon) operator.
+A logged in user sees all the channels. But he can only view the xml for a corresponding channel if either
+he is a owner or a subscriber to a channel. Also if the xslt url is not correct
+the xml does not displayed.I used Jetty for testing my servlets.
+In that I places the rss.xsl inside the context path folder(Crawler in my case)
+but outside the WEB-INF.
+
+ The tests are in package - test.edu.upenn.cis455. RunAllTests calls these tests.
+ 
+ The rss.xsl and warandpeace.xp are inside the rss folder.
+
+
+Did you personally write _all_ the code you are submitting
+(other than code from the course web page)?
+  [x] Yes
+  [ ] No
+
+Did you copy any code from the Internet, or from classmates?
+  [ ] Yes
+  [x] No
+
+Did you collaborate with anyone on this assignment?
+  [ ] Yes
+  [x] No

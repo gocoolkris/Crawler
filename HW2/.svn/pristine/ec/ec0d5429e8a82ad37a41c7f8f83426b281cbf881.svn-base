@@ -1,0 +1,84 @@
+package edu.upenn.cis455.database;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.persist.EntityCursor;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+
+import edu.upenn.cis455.dbobjects.Document;
+public class DocumentService {
+
+	public DocumentService(){}
+
+	private PrimaryIndex<String,Document> docurl;
+	private Environment env;
+
+	public DocumentService(EntityStore store, Environment e){
+		env = e;
+		docurl = store.getPrimaryIndex(String.class, Document.class);
+	}
+
+	public void addDocument(String url, String content){
+
+		try{
+			if(docurl.contains(url)){
+				Document d = docurl.get(url);
+				d.setDocumentContent(content);
+				d.setNowAsLastCrawled();
+				docurl.put(d);
+				env.sync();
+			}
+			else{
+				Document d = new Document(url, content, new Date());
+				docurl.put(d);
+				env.sync();
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	public void deleteDocument(String url){
+		try{
+			docurl.delete(url);
+			env.sync();
+		}
+		catch(Exception e){}
+	}
+
+
+	public HashMap<String,Date> getUrlList(){
+		try{
+			HashMap<String,Date> urlList = new HashMap<String,Date>();
+			EntityCursor<Document> records = docurl.entities();
+			if(records != null && (records.count() != 0)){
+				for(Document d : records){
+					urlList.put(d.getDocumentUrl(), d.getLastCrawled());
+				}
+				return urlList;
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public void printDocument(){
+		try{
+			EntityCursor<Document> doc = docurl.entities();
+			for(Document d : doc){
+				System.out.println(d.getDocumentUrl() + ":\n" + d.getDocumentContent());
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+
+
+
+}

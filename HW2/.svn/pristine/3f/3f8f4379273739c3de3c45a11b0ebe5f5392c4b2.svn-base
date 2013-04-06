@@ -1,0 +1,50 @@
+package edu.upenn.cis455.dbobjects;
+import com.sleepycat.persist.model.Entity;
+import com.sleepycat.persist.model.PrimaryKey;
+import com.sleepycat.persist.model.SecondaryKey;
+import com.sleepycat.persist.model.Relationship;
+
+@Entity
+public class Channel {
+
+	public Channel(){}
+
+	public Channel(String cid, String cname, String uname,String xpath, String xslt){
+		channelid = new String(cid);
+		channelName = cname;
+		owner = uname;
+		this.xpath = xpath;
+		xslturl = xslt;
+	}
+
+
+	public String getChannelid() {
+		return channelid;
+	}
+
+	public String getChannelName() {
+		return channelName;
+	}
+
+	public String getOwner() {
+		return owner;
+	}
+
+	public String getXpath() {
+		return xpath;
+	}
+
+	public String getXslturl() {
+		return xslturl;
+	}
+
+
+	@PrimaryKey
+	String channelid;
+	String channelName;
+	String owner;
+	String xpath;
+	String xslturl;
+
+
+}

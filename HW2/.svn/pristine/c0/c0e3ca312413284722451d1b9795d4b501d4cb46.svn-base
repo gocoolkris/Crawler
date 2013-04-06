@@ -1,0 +1,24 @@
+package edu.upenn.cis455.components;
+
+import java.util.ArrayList;
+
+public class VisitedUrl {
+
+	private static ArrayList<String> visitedUrls = new ArrayList<String>();
+	private static Object visitLock = new Object();
+	
+	public static boolean isAlreadyCrawled(String url){
+		synchronized(visitLock){
+			if(visitedUrls.contains(url))
+				return true;
+			return false;
+		}
+	}
+	
+	public static void addToCrawledList(String url){
+		synchronized(visitLock){
+			visitedUrls.add(url);
+		}
+	}
+	
+}

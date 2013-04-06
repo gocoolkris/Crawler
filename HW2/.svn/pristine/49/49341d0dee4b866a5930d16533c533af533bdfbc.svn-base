@@ -1,0 +1,4 @@
+/rss[@version="2.0"]/item/title[contains(),"war"]
+/rss[@version="2.0"]/item/description[contains(),"war"]
+/rss[@version="2.0"]/item/title[contains(),"peace"]
+/rss[@version="2.0"]/item/description[contains(),"peace"]

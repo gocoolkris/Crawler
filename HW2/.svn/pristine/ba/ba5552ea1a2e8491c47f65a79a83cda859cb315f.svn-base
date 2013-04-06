@@ -1,0 +1,131 @@
+package edu.upenn.cis455.dbservice;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.UUID;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.persist.EntityCursor;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+import com.sleepycat.persist.SecondaryIndex;
+
+import edu.upenn.cis455.dbobjects.Channel;
+import edu.upenn.cis455.dbobjects.User;
+
+public class ChannelService {	
+
+	private HashSet<String> channelids;
+	private Environment environ;
+	private PrimaryIndex<String,Channel> channelid;
+	private SecondaryIndex<String, String, Channel> channelName;
+	public ChannelService(EntityStore str, Environment e){
+		environ = e;
+		channelids = new HashSet<String>();
+		channelid = str.getPrimaryIndex(String.class, Channel.class);
+		channelName = str.getSecondaryIndex(channelid, String.class, "channelName");
+		loadChannelIds();
+
+	}
+
+	public void printChannels(){
+		EntityCursor<Channel>  channels = channelid.entities();
+		for(Channel c : channels){
+			System.out.println(c.getChannelid() + ":" + c.getChannelName());
+		}
+		channels.close();
+	}
+	
+	public ArrayList<Channel> getAllChannels(){
+		try{
+		EntityCursor<Channel> channels = channelid.entities();
+		ArrayList<Channel> Channels = new ArrayList<Channel>();
+		for(Channel c : channels) Channels.add(c);
+		return Channels;
+		}
+		catch(Exception e){}
+		return null;
+	}
+	
+	public Channel getChannel(String channelname, String owner){
+		try{
+			EntityCursor<Channel> channels = channelid.entities();
+			for(Channel c : channels){
+				if(c.getChannelName().equals(channelname) &&
+						c.getOwner().equals(owner)) return c;
+			}
+		}catch(Exception e){
+		}
+		return null;
+	}
+	
+	public boolean createChannel(String uname, String cname, String xpath, String xslturl){
+		try{
+			String cid = generateChannelid();
+			System.out.println(cid);
+			Channel ch = new Channel(cid, cname, uname, xpath, xslturl);
+			channelid.put(ch);
+			environ.sync();
+			return true;
+		}
+		catch(Exception e){
+			return false;
+		}
+	}
+
+	public boolean deleteChannel(String channelname, String username){
+		try{
+			EntityCursor<Channel> channels = channelid.entities();
+			for(Channel c : channels){
+				if(c.getChannelName().equals(channelname) && c.getOwner().equals(username)){
+					channelid.delete(c.getChannelid());
+					environ.sync();
+					return true;
+				}
+			}
+			return false;
+		}catch(Exception e){
+			return false;
+		}
+	}
+	
+	public HashMap<String,String> getChannelXpaths(){
+		try{
+			HashMap<String,String> xpaths = new HashMap<String,String>();
+			EntityCursor<Channel> channels = channelid.entities();
+			for(Channel c : channels){
+				xpaths.put(c.getChannelid(), c.getXpath());
+			}
+			return xpaths;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	
+	private void loadChannelIds(){
+		try{
+			EntityCursor<Channel> channels = channelid.entities();
+			for(Channel c : channels){
+				channelids.add(c.getChannelid());
+			}
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	private String generateChannelid(){
+		try{
+			UUID uid;
+			do{
+				uid = UUID.randomUUID();
+			}while(channelids.contains(uid.toString()));
+			return uid.toString();
+		}catch(Exception e){
+			return null;
+		}
+	}
+}

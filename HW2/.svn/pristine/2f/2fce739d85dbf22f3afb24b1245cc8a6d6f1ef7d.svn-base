@@ -1,0 +1,148 @@
+package edu.upenn.cis455.dbservice;
+
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.persist.EntityCursor;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.PrimaryIndex;
+
+import edu.upenn.cis455.dbobjects.Document;
+/**
+ * This class operates on Document object entity of the\
+ * database.
+ * @author gokul
+ *
+ */
+public class DocumentService {
+
+	public DocumentService(){}
+
+	private PrimaryIndex<String,Document> docurl;
+	private Environment env;
+
+	/**
+	 * instantiates an instance of the database.
+	 * @param store - the store to be used for any changes.
+	 * @param e - the environment object.
+	 */
+	public DocumentService(EntityStore store, Environment e){
+		env = e;
+		docurl = store.getPrimaryIndex(String.class, Document.class);
+	}
+
+	/**
+	 * method that adds  a document object to the database.
+	 * @param url - the url of the document.
+	 * @param content - the contents of the document.
+	 */
+	public void addDocument(String url, String content){
+
+		try{
+			if(docurl.contains(url)){
+				Document d = docurl.get(url);
+				d.setDocumentContent(content);
+				d.setNowAsLastCrawled();
+				docurl.put(d);
+				env.sync();
+			}
+			else{
+				Document d = new Document(url, content, new Date());
+				docurl.put(d);
+				env.sync();
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * deletes the document from the database.
+	 * @param url - the url of the document that is to be
+	 * deleted.
+	 */
+	public void deleteDocument(String url){
+		try{
+			docurl.delete(url);
+			env.sync();
+		}
+		catch(Exception e){}
+	}
+
+
+	/**
+	 * method that collects all the url along 
+	 * with the last Modified Date.
+	 * @return a hashmap of the url along with their last modified date
+	 */
+	public HashMap<String,Date> getUrlList(){
+		HashMap<String,Date> urlList = new HashMap<String,Date>();
+		EntityCursor<Document> records = docurl.entities();
+		try{
+			if(records != null){
+				for(Document d : records){
+					urlList.put(d.getDocumentUrl(), d.getLastCrawled());
+				}
+				return urlList;
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			records.close();
+		}
+		return null;
+	}
+
+	/**
+	 * method that returns the document content for a given url
+	 * @param url - the url of the document.
+	 * @return - content of the document.
+	 */
+	public String getDocumentContent(String url){
+		try{
+			String content = docurl.get(url).getDocumentContent();
+			return content;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	/**
+	 * returns the document object itself.
+	 * @param url - the url of the document object.
+	 * @return document object
+	 */
+	public Document getDocument(String url){
+		try{
+			Document d = docurl.get(url);
+			return d;
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * Helper method used for printing and validating the operations
+	 * on the document object.
+	 */
+	public void printDocument(){
+		EntityCursor<Document> doc = docurl.entities();
+		try{
+			for(Document d : doc){
+				System.out.println(d.getDocumentUrl());
+				System.out.flush();
+				//System.out.println(d.getDocumentContent());
+			}
+		}catch(Exception e){
+			e.printStackTrace();
+		}finally{
+			doc.close();
+		}
+	}
+
+}

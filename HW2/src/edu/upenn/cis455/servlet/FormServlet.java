@@ -1,0 +1,31 @@
+package edu.upenn.cis455.servlet;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+public class FormServlet extends HttpServlet {
+
+	/**
+	 * The startup form that is shown for entering
+	 * the URL to be validated and the XPath Condition.
+	 */
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	public void doGet(HttpServletRequest request, HttpServletResponse response){
+		try {
+			PrintWriter out = response.getWriter();
+			out.print("<html><head><title>XPath Form</title></head><body>");
+			out.print("<form action=xpathvalidate method=\"POST\">");
+			out.print("URL : <input type=\"text\" name=\"documenturl\"><br>");
+			out.print("XPath Condition: <input type=\"text\" name=\"xpathcondn\"><br>");
+			out.print("<input type=\"submit\" name=\"submit\" value=\"Submit\" />");
+			out.print("</form></body></html>");
+			out.flush();
+		} catch (IOException e) {}
+	}
+}

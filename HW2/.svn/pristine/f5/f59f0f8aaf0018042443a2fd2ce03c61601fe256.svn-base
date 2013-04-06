@@ -1,0 +1,29 @@
+package edu.upenn.cis455.xpathengine;
+
+import org.w3c.dom.Document;
+
+public class XPathEngineImpl implements XPathEngine {
+
+  private String[] XpathExpressions;
+  private boolean[] areValidXpaths;
+	
+  public XPathEngineImpl() {
+    // Do NOT add arguments to the constructor!!
+  }
+	
+  public void setXPaths(String[] s) {
+   XpathExpressions = s;
+   areValidXpaths = new boolean[s.length];
+  }
+
+  public boolean isValid(int i) {
+   if(XpathExpressions == null) return false;
+   return true;
+  }
+	
+  public boolean[] evaluate(Document d) { 
+    /* TODO: Check whether the document matches the XPath expressions */
+    return null; 
+  }
+        
+}

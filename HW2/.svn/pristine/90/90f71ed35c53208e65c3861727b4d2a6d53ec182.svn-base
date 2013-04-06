@@ -1,0 +1,43 @@
+package edu.upenn.cis455.dbobjects;
+import java.util.HashSet;
+
+import com.sleepycat.persist.model.Entity;
+import com.sleepycat.persist.model.PrimaryKey;
+import com.sleepycat.persist.model.SecondaryKey;
+import com.sleepycat.persist.model.DeleteAction;
+
+import static com.sleepycat.persist.model.Relationship.*;
+
+@Entity
+public class Subscriber {
+
+	public Subscriber(){}
+
+	@PrimaryKey
+	String subscriber;
+
+	HashSet<String> channelid;
+
+	public String getSubscriber() {
+		return subscriber;
+	}
+
+	public void setSubscriber(String subscriber) {
+		this.subscriber = subscriber;
+	}
+
+	public HashSet<String> getChannelids() {
+		return channelid;
+	}
+
+	public void removeChannelid(String id){
+		channelid.remove(id);
+	}
+	
+	
+	public void addChannelId(String cid){
+		if(channelid == null)
+			channelid = new HashSet<String>();
+		channelid.add(cid);
+	}
+}

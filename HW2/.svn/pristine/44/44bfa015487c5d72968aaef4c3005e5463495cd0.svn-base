@@ -1,0 +1,166 @@
+package edu.upenn.cis455.servlet;
+
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.HashSet;
+
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import edu.upenn.cis455.dbobjects.Channel;
+import edu.upenn.cis455.dbservice.ChannelService;
+import edu.upenn.cis455.dbservice.DbStoreSetup;
+import edu.upenn.cis455.dbservice.SubscriberService;
+/**
+ * This servlet is used for many different purposes. A user can add a channel, 
+ * he can subscribe to a channel, delete a channel, display a channel.
+ * @author gokul
+ *
+ */
+public class ListChannelServlet extends HttpServlet{
+
+	public void doGet(HttpServletRequest request, HttpServletResponse response){
+		try{
+			HttpSession session = request.getSession();
+			String dbLocation = this.getServletContext().getInitParameter("BDBstore");
+			DbStoreSetup setup = new DbStoreSetup(dbLocation,false);
+			ChannelService cs = new ChannelService(setup.getEntityStore(), setup.getEnvironment());
+			SubscriberService subService = new SubscriberService(setup.getEntityStore(),setup.getEnvironment());
+			ArrayList<Channel> channels = cs.getAllChannels();
+			PrintWriter writer = response.getWriter();
+			if(session == null || session.getAttribute("username") == null){
+				writer.print("<html><head><title>ChannelList</title></head>");
+				writer.print("<body><div><table border=\"1\">");
+				writer.print("<tr>");
+				writer.print("<th>ChannelName</th>");
+				writer.print("<th>Xpaths</th>");
+				writer.print("<th>XsltUrl</th>");
+				writer.print("<th>Owner</th>");
+				writer.print("</tr>");
+				for(Channel c : channels){
+					writer.print("<tr>");
+					writer.print("<td>" + c.getChannelName() + "</td>");
+					StringBuffer xpathlist = new StringBuffer();
+					for(String xpath : c.getXpath().split("\n"))
+						xpathlist.append(xpath + ";");
+					String xpaths = xpathlist.toString().substring(0, xpathlist.lastIndexOf(";"));
+					writer.print("<td>" + xpaths + "</td>");
+					writer.print("<td>" + c.getXslturl() + "</td>");
+					writer.print("<td>" + c.getOwner() + "</td>");
+					writer.print("</tr>");
+				}
+				writer.print("</table>");
+				writer.flush();
+			}
+			else{
+				String username = (String)session.getAttribute("username");
+				HashSet<String> channelids = subService.getSubscriptionList(username);
+				System.out.println("getting the subscription list");
+				for(String s : channelids) System.out.println(s);
+				writer.print("<html><head><title>ChannelList</title></head><body>");
+				writer.print("<p class=\"addchannel\"><a href=\"addchannel\">AddChannel</a></p>");
+				writer.print("<p class=\"deleteaccount\"><a href=\"delete\">DeleteMyAccount</a></p>");
+				writer.print("<p class=\"logout\"><a href=\"logout\">Logout</a></p>");
+				writer.print("<div align=\"center\"><h2>Channel List</h2>");
+				writer.print("User : " + username + "</div>");
+				writer.print("<table border=\"1\">");
+				writer.print("<tr>");
+				writer.print("<th>ChannelName</th>");
+				writer.print("<th>Xpaths</th>");
+				writer.print("<th>XsltUrl</th>");
+				writer.print("<th>Action</th>");
+				writer.print("</tr>");
+				for(Channel c : channels){
+					if(c.getOwner().equals(username)){ //owner of Channel
+						writer.print("<form method=\"POST\" action=\"list?channelname=" + c.getChannelName());
+						writer.print("&owner=" + c.getOwner()+"&action=delete" + "\">");
+						writer.print("<tr>");
+						writer.print("<td><a href=\"display?channelname=" + c.getChannelName());
+						writer.print("&owner="+c.getOwner()+"\">" + c.getChannelName() + "</a></td>");
+						writer.print("<td>"+ c.getXpath() +"</td>");
+						writer.print("<td>" + c.getXslturl() + "</td>");
+						writer.print("<td>");
+						writer.print("<input type=\"submit\" value=\"Delete\">");
+						writer.print("</td>");
+						writer.print("</tr>");
+						writer.print("</form>");
+					} else if((channelids != null) && channelids.contains(c.getChannelid())){ //subscriber
+						writer.print("<form method = \"POST\" action=\"list?channelname=" + c.getChannelName());
+						writer.print("&owner="+ c.getOwner()+"&action=unsubscribe" + "\">");
+						writer.print("<tr>");
+						writer.print("<td><a href=\"display?channelname=" + c.getChannelName());
+						writer.print("&owner="+c.getOwner()+"\">" + c.getChannelName() + "</a></td>");
+						writer.print("<td>"+ c.getXpath() +"</td>");
+						writer.print("<td>" + c.getXslturl() + "</td>");
+						writer.print("<td>");
+						writer.print("<input type=\"submit\" value=\"Unsubscribe\">");
+						writer.print("</td>");
+						writer.print("</tr></form>");
+					} else{  // other logged in user.
+						writer.print("<form method = \"POST\" action=\"list?channelname="+c.getChannelName());
+						writer.print("&owner=" + c.getOwner()+"&action=subscribe" + "\">");
+						writer.print("<tr>");
+						writer.print("<td>" + c.getChannelName() + "</td>");
+						writer.print("<td>"+ c.getXpath() +"</td>");
+						writer.print("<td>" + c.getXslturl() + "</td>");
+						writer.print("<td>");
+						writer.print("<input type=\"submit\" value=\"Subscribe\">");
+						writer.print("</td>");
+						writer.print("</tr></form>");
+					}
+				}
+				writer.print("</table></body></html>");
+				writer.flush();
+			}
+		}catch(Exception e){}
+	}
+
+	public void doPost(HttpServletRequest request, HttpServletResponse response){
+		try{
+			HttpSession session = request.getSession();
+			if(session != null && session.getAttribute("username") != null){
+				String username = (String)session.getAttribute("username");
+				String action = request.getParameter("action");
+				String channelname = request.getParameter("channelname");
+				String owner = request.getParameter("owner");
+			    if(channelname != null && owner != null){
+			    	if(username.equals(owner)){
+			    		if(action != null && action.equals("delete")){
+			    			System.out.println("Delete command received");
+			    			System.out.println(username + channelname + owner);
+			    			String dbLocation = this.getServletContext().getInitParameter("BDBstore");
+			    			DbStoreSetup setup = new DbStoreSetup(dbLocation, false);
+			    			ChannelService channelService = new ChannelService(setup.getEntityStore(),setup.getEnvironment());
+			    			String channelid = channelService.getChannel(channelname, owner).getChannelid();
+			    			System.out.println(channelid);
+			    			SubscriberService ss = new SubscriberService(setup.getEntityStore(),setup.getEnvironment());
+			    			ss.removeChannelidFromAllSubscribers(channelid);
+			    			channelService.deleteChannel(channelid);
+			    		}
+			    	}
+			    	else if(action != null && action.equals("subscribe")){
+			    		System.out.println("Subscribe Command received");
+			    		String dbLocation = this.getServletContext().getInitParameter("BDBstore");
+		    			DbStoreSetup setup = new DbStoreSetup(dbLocation, false);
+		    			SubscriberService ss = new SubscriberService(setup.getEntityStore(),setup.getEnvironment());
+		    			ss.subscribe(owner, channelname, username);
+			    	}
+			    	else if(action != null && action.equals("unsubscribe")){
+			    		String dbLocation = this.getServletContext().getInitParameter("BDBstore");
+		    			DbStoreSetup setup = new DbStoreSetup(dbLocation, false);
+		    			SubscriberService ss = new SubscriberService(setup.getEntityStore(),setup.getEnvironment());
+		    			ss.unsubscribe(owner, channelname, username);
+			    	}
+			    	response.sendRedirect("list");
+			    }
+			    else {
+			    	response.sendRedirect("login");
+			    }
+			}
+		}catch(Exception e){}
+	}
+	
+	
+}

@@ -1,0 +1,61 @@
+package edu.upenn.cis455.servlet;
+
+import java.io.PrintWriter;
+
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import edu.upenn.cis455.dbservice.DbStoreSetup;
+import edu.upenn.cis455.dbservice.UserService;
+
+/**
+ * The channel that is to be used for deleting a user account.
+ * @author gokul
+ *
+ */
+public class DeleteAccountServlet extends HttpServlet{
+	
+	private static final long serialVersionUID = 1L;
+
+	@Override
+	public void doGet(HttpServletRequest request, HttpServletResponse response){
+		try{
+			HttpSession session = request.getSession();
+			if(session == null || session.getAttribute("username") == null){
+				response.sendRedirect("login");
+			}
+			else{
+				String username = (String)session.getAttribute("username");
+				String dbLocation = this.getServletContext().getInitParameter("BDBstore");
+				DbStoreSetup setup = new DbStoreSetup(dbLocation, false);
+				UserService us = new UserService(setup.getEntityStore(), setup.getEnvironment());
+				if(us.deleteUser(username)){
+					PrintWriter writer = response.getWriter();
+					writer.print("<html><head><title>Account Deleted</title>");
+					writer.print("</head><body><div align=\"center\"><h2>Account Deleted</h2>");
+					writer.print("<form action=\"login\" method=\"GET\">");
+					writer.print("<input type=\"submit\" value = \"Login\"></form>");
+					writer.print("</div></body></html>");
+					writer.flush();
+				}
+				else{
+					PrintWriter writer = response.getWriter();
+					writer.print("<html><head><title>Invalid Account</title>");
+					writer.print("</head><body><div align=\"center\"><h2>Account does not exist</h2>");
+					writer.print("<form action=\"login\" method=\"GET\">");
+					writer.print("<input type=\"submit\" value = \"Login\"></form>");
+					writer.print("</div></body></html>");
+					writer.flush();
+				}
+			}
+		}catch(Exception e){}
+	}
+	
+	@Override
+	public void doPost(HttpServletRequest request, HttpServletResponse response){
+		
+	}
+	
+}

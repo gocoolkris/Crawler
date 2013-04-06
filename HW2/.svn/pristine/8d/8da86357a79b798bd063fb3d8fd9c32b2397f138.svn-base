@@ -1,0 +1,34 @@
+package test.edu.upenn.cis455;
+
+import org.w3c.dom.Document;
+
+import edu.upenn.cis455.httpclient.HttpClient;
+import edu.upenn.cis455.validator.DoMTreeBuilder;
+import edu.upenn.cis455.validator.XPathValidator;
+
+import junit.framework.TestCase;
+
+public class XPathValidatorTest extends TestCase {
+
+	String url;
+	Document d;
+	XPathValidator validator;
+	
+	protected void setUp() throws Exception {
+		super.setUp();
+	}
+
+
+	public void testValidateXpath() {
+		url = "http://crawltest.cis.upenn.edu/nytimes/";
+		String xpath = "/html/body/ul/li[a[contains(text() , \"Afr\")]]";
+		HttpClient c = new HttpClient(url);
+		String contents = c.getDocument().toString();
+		System.out.println(contents);
+		DoMTreeBuilder builder = new DoMTreeBuilder(contents,url);
+		validator = new XPathValidator(builder.getDocumentNode());
+		System.out.println(validator.validateXpath(xpath));
+	}
+
+
+}

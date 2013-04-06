@@ -1,0 +1,94 @@
+package test.edu.upenn.cis455;
+
+import org.w3c.dom.Document;
+
+import edu.upenn.cis455.httpclient.HttpClient;
+import edu.upenn.cis455.validator.DoMTreeBuilder;
+import edu.upenn.cis455.validator.XPathValidator;
+
+import junit.framework.TestCase;
+
+public class XPathValidatorTest extends TestCase {
+
+	String url;
+	Document d;
+	XPathValidator validator;
+	
+	protected void setUp() throws Exception {
+		super.setUp();
+	}
+
+
+	public void testValidateXpathSet1() {
+		url = "http://crawltest.cis.upenn.edu/nytimes/";
+		String xpath = "/html/body/ul/li[a[contains(text() , \"Afr\")]]";
+		HttpClient c = new HttpClient(url);
+		String contents = c.getDocument().toString();
+		DoMTreeBuilder builder = new DoMTreeBuilder(contents,url);
+		validator = new XPathValidator(builder.getDocumentNode());
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/html/body/ul/li[a[@href = \"Africa.xml\"][text() = \"Africa\"]]";
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/html/body/ul/li[a[@href = \"Movies.xml\"][contains(text(),\"Reviews\")]]";
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/html/head/title/h2";
+		assertFalse(validator.validateXpath(xpath));
+	}
+
+	
+	public void testValidateXpathSet2(){
+		url = "http://crawltest.cis.upenn.edu/misc/weather.xml";
+		String xpath = "/dwml/head/product";
+		HttpClient c = new HttpClient(url);
+		String contents = c.getDocument().toString();
+		DoMTreeBuilder builder = new DoMTreeBuilder(contents,url);
+		validator = new XPathValidator(builder.getDocumentNode());
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/dwml/head/product[@concise-name = \"time-series\"]";
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/dwml/head/product[@concise-name = \"time-series\"]";
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/dwml/head/product[title[contains(text(),\"Forecast Data\")]]";
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/dwml/head/product[title[category[contains(text(),\"forecast\")]]]";
+		assertFalse(validator.validateXpath(xpath));
+	}
+
+	public void testValidateXpathSet3(){
+		url = "http://crawltest.cis.upenn.edu/misc/eurofxref-daily.xml";
+		String xpath = "/gesmes:Envelope";
+		HttpClient c = new HttpClient(url);
+		String contents = c.getDocument().toString();
+		DoMTreeBuilder builder = new DoMTreeBuilder(contents,url);
+		validator = new XPathValidator(builder.getDocumentNode());
+		assertFalse(validator.validateXpath(xpath));
+	}
+	
+	public void testValidateXpathSet4(){
+		url = "http://crawltest.cis.upenn.edu/nytimes/MiddleEast.xml";
+		String xpath = "/rss[@version = \"2.0\"]";
+		HttpClient c = new HttpClient(url);
+		String contents = c.getDocument().toString();
+		DoMTreeBuilder builder = new DoMTreeBuilder(contents,url);
+		validator = new XPathValidator(builder.getDocumentNode());
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/rss/channel/item/title[contains(text(),\"Car Bombs\")]";
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/rss/channel/item/title[contains(text(),\"God\")]";
+		assertFalse(validator.validateXpath(xpath));
+	}
+	
+	public void testValidateXpathSet5(){
+		url = "http://crawltest.cis.upenn.edu/nytimes/AsiaPacific.xml";
+		String xpath = "/rss[@version = \"2.0\"]";
+		HttpClient c = new HttpClient(url);
+		String contents = c.getDocument().toString();
+		DoMTreeBuilder builder = new DoMTreeBuilder(contents,url);
+		validator = new XPathValidator(builder.getDocumentNode());
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/rss/channel/title[contains(text(),\"Asia\")]";
+		assertTrue(validator.validateXpath(xpath));
+		xpath = "/rss/channel/title[contains(text(),\"India\")]";
+		assertFalse(validator.validateXpath(xpath));
+	}
+}

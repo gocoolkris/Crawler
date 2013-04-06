@@ -1,0 +1,62 @@
+package edu.upenn.cis455.dbservice;
+
+import java.io.File;
+
+import com.sleepycat.je.Environment;
+import com.sleepycat.je.EnvironmentConfig;
+import com.sleepycat.persist.EntityStore;
+import com.sleepycat.persist.StoreConfig;
+
+public class DbStoreSetup {
+
+	private  String envLocation, storeName = "CrawlerDataStore";
+	private Environment environment;
+	private EntityStore store;
+	private boolean readOnly;
+	
+	public DbStoreSetup(){}
+	
+	public DbStoreSetup(String location, boolean rOnly){
+		envLocation = location;
+		readOnly = rOnly;
+		setUp();
+	}
+	
+	private void setUp(){
+		try{
+		EnvironmentConfig envConfig = new EnvironmentConfig();
+		StoreConfig strConfig = new StoreConfig();
+		envConfig.setReadOnly(readOnly);
+        strConfig.setReadOnly(readOnly);
+        //if needed to write
+        envConfig.setAllowCreate(!readOnly);
+        strConfig.setAllowCreate(!readOnly);
+		
+        File path = new File(envLocation);
+        if(!path.exists()) path.mkdirs();
+        
+        environment = new Environment(path,envConfig);
+        store = new EntityStore(environment,storeName,strConfig);
+		}
+		catch(Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	public EntityStore getEntityStore(){
+		return store;
+	}
+	
+	public Environment getEnvironment(){
+		return environment;
+	}
+	
+	public void close(){
+		try{
+			if(store != null) store.close();
+			if(environment != null) environment.close();
+		}
+		catch(Exception e){}
+	}
+	
+}

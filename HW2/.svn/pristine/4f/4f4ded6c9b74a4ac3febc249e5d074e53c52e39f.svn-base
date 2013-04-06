@@ -1,0 +1,55 @@
+package edu.upenn.cis455.crawler;
+
+import edu.upenn.cis455.components.Queue;
+import edu.upenn.cis455.components.VisitedUrl;
+import edu.upenn.cis455.globaldata.GlobalData;
+
+public class CrawlerThread implements Runnable{
+
+	static Queue urlQueue;
+	
+	public CrawlerThread(){}
+	@Override
+	public void run() {
+	/**
+	 * access the queue
+	 * get the link
+	 * download the link
+	 * store into database.
+	 * 
+	 */
+		while(true){
+			if(GlobalData.shutdown) break;
+			String url = urlQueue.dequeueUrl();
+			if(VisitedUrl.isAlreadyCrawled(url))
+				continue;
+			else{
+				/**
+				 * if already downloaded {
+				 *  if content-changed-since-lastCrawl
+				 *     download new content and update.
+				 *  else getLocalCopy
+				 *  if html extract links and add to queue
+				 *  else if xml validate and update database.       
+				 * }
+				 * else{
+				 *   download new content
+				 *   update database.
+				 *   if html extract links and add to queue
+				 *   elseif xml validate and update database
+				 * }
+				 */
+			}
+			
+			
+			VisitedUrl.addToCrawledList(url);
+		}
+	}
+
+	public static void setUrlQueue(Queue q){
+		urlQueue = q;
+	}
+	
+	
+	
+}
